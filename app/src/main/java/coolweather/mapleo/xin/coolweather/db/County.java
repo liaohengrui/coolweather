@@ -9,7 +9,9 @@ import lombok.Data;
 @Data
 public class County extends DataSupport {
     private int id;
-    private String contyName;
+    private String name;
     private String weatherId;
-    private int cityName;
+    private int cityId;
+
+
 }

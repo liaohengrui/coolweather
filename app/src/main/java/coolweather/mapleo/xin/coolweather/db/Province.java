@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class Province extends DataSupport {
     private int id;
-    private String provinceName;
+    private String name;
     private int provinceCode;
+
+
 }

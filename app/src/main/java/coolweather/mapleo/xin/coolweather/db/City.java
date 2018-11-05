@@ -7,8 +7,10 @@ import lombok.Data;
 @Data
 public class City extends DataSupport {
     private int id;
-    private String cityName;
+    private String name;
     private int cityCode;
     private int provinceId;
+
+
 }
 
