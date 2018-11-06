@@ -2,6 +2,7 @@ package coolweather.mapleo.xin.coolweather.choosearea;
 
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -28,6 +29,7 @@ import coolweather.mapleo.xin.coolweather.db.City;
 import coolweather.mapleo.xin.coolweather.db.County;
 import coolweather.mapleo.xin.coolweather.db.Province;
 import coolweather.mapleo.xin.coolweather.mvp.MVPBaseFragment;
+import coolweather.mapleo.xin.coolweather.weather.WeatherActivity;
 
 /**
  * MVPPlugin
@@ -176,6 +178,12 @@ public class ChooseareaFragment extends MVPBaseFragment<ChooseareaContract.View,
         } else if (currentLevel == LEVEL_CITY) {
             selectedCity = cityList.get(position);
             mPresenter.queryCounties(selectedProvince.getId(), selectedCity.getId());
+        } else if (currentLevel == LEVEL_COUNTY) {
+            String weatherId = countyList.get(position).getWeatherId();
+            Intent intent = new Intent(getActivitys(), WeatherActivity.class);
+            intent.putExtra("weather_id", weatherId);
+            startActivity(intent);
+            getActivitys().finish();
         }
     }
 
