@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
@@ -20,6 +21,7 @@ import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.bumptech.glide.Glide;
 
 import java.io.IOException;
 
@@ -76,6 +78,18 @@ public class WeatherActivity extends MVPBaseActivity<WeatherContract.View, Weath
     @BindView(R.id.sport_text)
     TextView sportText;
 
+    @BindView(R.id.bing_pic_img)
+    ImageView bingPicImg;
+
+    @BindView(R.id.swipe_refresh)
+    SwipeRefreshLayout swipeRefreshLayout;
+
+    @BindView(R.id.nav_button)
+    Button navButton;
+
+    @BindView(R.id.drawer_layout)
+    DrawerLayout drawerLayout;
+
     String mWeatherId;
 
     @Override
@@ -91,17 +105,39 @@ public class WeatherActivity extends MVPBaseActivity<WeatherContract.View, Weath
         ButterKnife.bind(this);
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather", null);
-        String weatherId = getIntent().getStringExtra("weather_id");
         Weather weather = JSON.parseObject(weatherString, Weather.class);
-
-        if (weatherString != null && weather.getBasic().getId() == weatherId) {
+        mWeatherId = getIntent().getStringExtra("weather_id");
+        if (mWeatherId == null) {
+            mWeatherId = weather.getBasic().getId();
+        }
+        if (weatherString != null && weather.getBasic().getId() == mWeatherId) {
             // 有缓存时直接解析天气数据
+            mWeatherId = weather.getBasic().getId();
             showWeatherInfo(weather);
         } else {
             // 无缓存时去服务器查询天气
             weatherLayout.setVisibility(View.INVISIBLE);
-            requestWeather(weatherId);
+            requestWeather(mWeatherId);
         }
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(mWeatherId);
+            }
+        });
+        String bingPic = prefs.getString("bing_pic", null);
+        if (bingPic != null) {
+            Glide.with(this).load(bingPic).into(bingPicImg);
+        } else {
+            loadBingPic();
+        }
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
+
     }
 
     private void requestWeather(final String weatherId) {
@@ -120,6 +156,7 @@ public class WeatherActivity extends MVPBaseActivity<WeatherContract.View, Weath
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                        swipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -137,11 +174,12 @@ public class WeatherActivity extends MVPBaseActivity<WeatherContract.View, Weath
                             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("weather", responseText2);
                             editor.apply();
-                            mWeatherId = weather.getBasic().getCid();
+                            mWeatherId = weather.getBasic().getId();
                             showWeatherInfo(weather);
                         } else {
                             Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
                         }
+                        swipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -183,6 +221,39 @@ public class WeatherActivity extends MVPBaseActivity<WeatherContract.View, Weath
         carWashText.setText(carWash);
         sportText.setText(sport);
         weatherLayout.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * 加载必应每日一图
+     */
+    private void loadBingPic() {
+        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        OkHttpClient okHttpClient = new OkHttpClient();
+        final Request request = new Request.Builder()
+                .url(requestBingPic)
+                .get()//默认就是GET请求，可以不写
+                .build();
+        Call call = okHttpClient.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String bingPic = response.body().string();
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("bing_pic", bingPic);
+                editor.apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.with(WeatherActivity.this).load(bingPic).into(bingPicImg);
+                    }
+                });
+            }
+        });
     }
 
 
